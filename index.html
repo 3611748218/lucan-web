@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>一念温柔</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tip-w:280px;
+  --tip-h:120px;
+  --radius:16px;
+  --shadow: 0 10px 30px rgba(18,22,38,0.16);
+  --glass: rgba(255,255,255,0.55);
+  --glass-border: rgba(255,255,255,0.6);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,#fbfbff 0%,#f7f9ff 100%);font-family:'Noto Sans SC','PingFang SC',"微软雅黑",Arial;color:#111;overflow:hidden}
+.container{position:fixed;inset:0;pointer-events:none}
+.tip{
+  position:absolute;
+  width:var(--tip-w);
+  height:var(--tip-h);
+  padding:18px 20px;
+  border-radius:var(--radius);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:15px;
+  line-height:1.45;
+  color:#0b1b2b;
+  backdrop-filter: blur(6px) saturate(120%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.60));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.6);
+  opacity:0;
+  transform: translateY(8px) scale(0.985);
+  transition: opacity 260ms ease, transform 320ms cubic-bezier(.2,.9,.25,1);
+  z-index:9999;
+  pointer-events:none;
+}
+.tip.show{opacity:1;transform:translateY(0) scale(1)}
+.tip.fadeout{opacity:0;transform:translateY(-12px) scale(0.98)}
+.tip .accent{
+  position:absolute;
+  left:10px;top:10px;
+  width:10px;height:10px;border-radius:50%;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+@keyframes floaty{
+  0%{transform:translateY(0) translateX(0)}
+  50%{transform:translateY(-6px) translateX(4px)}
+  100%{transform:translateY(0) translateX(0)}
+}
+.tip.float{animation: floaty 4.5s ease-in-out infinite}
+@media (max-width:560px){
+  :root{--tip-w:220px;--tip-h:110px;--radius:12px}
+  .tip{font-size:14px;padding:14px 12px}
+}
+.hidden-focus{position:fixed;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="container" id="container"></div>
+<span class="hidden-focus" aria-hidden="true"></span>
+<script>
+const tips=["今天过得开心吗？","早点休息呀，别让星星等太久～","别熬夜啦，你的梦需要你。","保持微笑呀，它真的很好看。","期待下次见面 :)","多喝水喔，温暖从身体开始。","天冷了，多穿衣服别让风钻进怀里。","愿所有烦恼都随风而去～","你已经做得很好了，真的。","有时候慢一点也没关系。","记得照顾好自己，这世界需要温柔的你。","阳光正好，也该好好生活啦。","风也会替我向你问好。","别害怕未来，月亮一直都在。","不必完美，也可以被喜欢。","希望你每天都能笑出声。","有些事慢慢来没关系，花也需要时间绽放。","今天的你，也在发着光呢。","愿你被世界温柔以待，也温柔地对待世界。","星星会替我陪你一整晚。"];
+const palette=["#B3E5FC","#C8E6C9","#FFCDD2","#FFE0B2","#B2EBF2","#E8F5E9","#F3E5F5","#E9D5FF","#FFF3B0"];
+const MAX_LOOP=50,INTERVAL_MS=300,FINAL_CLOSE_DELAY=10000;
+let loopCount=0,tipIndex=0,popups=[],intervalId=null,timers=[];
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function nextTip(){const t=tips[tipIndex%tips.length];tipIndex++;return t}
+function createNode(text){
+  const el=document.createElement('div');
+  el.className='tip';
+  const accent=document.createElement('div');
+  accent.className='accent';
+  accent.style.background=palette[rand(0,palette.length-1)];
+  el.appendChild(accent);
+  const wrap=document.createElement('div');
+  wrap.textContent=text;
+  el.appendChild(wrap);
+  const w=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tip-w'))||280;
+  const h=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tip-h'))||120;
+  const vw=Math.max(window.innerWidth,document.documentElement.clientWidth||0);
+  const vh=Math.max(window.innerHeight,document.documentElement.clientHeight||0);
+  const x=rand(12,Math.max(12,vw-w-12));
+  const y=rand(12,Math.max(12,vh-h-56));
+  el.style.left=x+'px';el.style.top=y+'px';
+  el.style.background = `linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.70))`;
+  if(Math.random()>0.55) el.classList.add('float');
+  document.getElementById('container').appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  return el;
+}
+function showTip(){
+  if(loopCount>=MAX_LOOP){clearInterval(intervalId);intervalId=null;timers.push(setTimeout(closeAll,FINAL_CLOSE_DELAY));return}
+  const node=createNode(nextTip());
+  popups.push(node);
+  loopCount++;
+}
+function closeAll(){
+  for(const n of popups){if(!n)continue;n.classList.remove('show');n.classList.add('fadeout');setTimeout(()=>{try{n.remove()}catch(e){}},420)}
+  popups=[];timers.forEach(clearTimeout);timers=[];
+}
+window.addEventListener('load',()=>{showTip();intervalId=setInterval(showTip,INTERVAL_MS)});
+</script>
+</body>
+</html>
